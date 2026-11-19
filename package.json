@@ -1,0 +1,31 @@
+{
+  "name": "rune-blocks",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "validate:campaign": "node --experimental-strip-types scripts/validate-campaign.ts",
+    "generate:ambient": "node scripts/generate-ambient.mjs",
+    "capture:promos": "node scripts/capture-promos.mjs",
+    "smoke:browser": "node scripts/smoke-browser.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check": "npm run test && npm run validate:campaign && npm run build",
+    "build:yandex": "npm run check && npm run smoke:browser && node scripts/package-yandex.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-legacy": "^8.2.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "fflate": "^0.8.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}
