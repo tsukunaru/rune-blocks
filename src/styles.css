@@ -642,6 +642,12 @@ button:focus-visible, canvas:focus-visible, input:focus-visible, summary:focus-v
   .game-canvas { width: 74vh; max-width: 510px; height: 96vh; width: min(74vh, 510px); }
 }
 
+@media (min-width: 1120px) and (min-height: 680px) {
+  .menu-screen { zoom: 1.5; align-content: center; }
+  .menu-screen h1 { font-size: clamp(2.45rem, 4vw, 4.7rem); }
+  .menu-screen .hero-island { height: clamp(175px, 23.33vh, 330px); }
+}
+
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 540px) {
   .menu-screen {
     display: grid;

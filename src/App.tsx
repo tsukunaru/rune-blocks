@@ -750,11 +750,6 @@ export function App() {
         <RuneButton onClick={() => setScreen('settings')}>⚙ {tr('settings')}</RuneButton>
       </div>
     </nav>
-    {!save.tutorialCompleted && <Modal className="welcome-card">
-      <span className="modal-rune">ᚱ</span><h2>{tr('tutorialWelcome')}</h2><p>{tr('tutorialWelcomeBody')}</p>
-      <RuneButton className="primary wide" onClick={startTutorial}>{tr('tutorialStart')}</RuneButton>
-      <RuneButton className="ghost" onClick={skipTutorial}>{tr('skip')}</RuneButton>
-    </Modal>}
   </section>;
 
   const renderCampaign = () => <section className="screen page-screen campaign-screen">
@@ -993,6 +988,11 @@ export function App() {
   >
     <FantasyBackdrop biome={activeBiome} />
     {screen === 'menu' && renderMenu()}
+    {screen === 'menu' && !save.tutorialCompleted && <Modal className="welcome-card">
+      <span className="modal-rune">ᚱ</span><h2>{tr('tutorialWelcome')}</h2><p>{tr('tutorialWelcomeBody')}</p>
+      <RuneButton className="primary wide" onClick={startTutorial}>{tr('tutorialStart')}</RuneButton>
+      <RuneButton className="ghost" onClick={skipTutorial}>{tr('skip')}</RuneButton>
+    </Modal>}
     {screen === 'campaign' && renderCampaign()}
     {screen === 'daily' && renderDaily()}
     {screen === 'themes' && renderThemes()}

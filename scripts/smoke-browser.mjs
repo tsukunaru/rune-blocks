@@ -192,9 +192,31 @@ try {
   await evaluate(`(() => {
     const skip = [...document.querySelectorAll('button')].find((button) => button.textContent.includes('Skip'));
     skip?.click();
-    const play = [...document.querySelectorAll('button')].find((button) => button.textContent.includes('Continue'));
-    play?.click();
   })()`);
+  for (const language of ['ru', 'en']) {
+    await evaluate("document.querySelector('.small-actions button:last-child').click()");
+    await waitFor("document.querySelector('.settings-list')");
+    await evaluate("[...document.querySelectorAll('.settings-list button')].find(button => button.textContent.includes('RU / EN')).click()");
+    await waitFor(`document.documentElement.lang === '${language}'`);
+    await evaluate("document.querySelector('.page-header button').click()");
+    await waitFor("document.querySelector('.main-actions .primary')");
+    for (const [width, height] of [[1120, 680], [1280, 720], [1920, 1080]]) {
+      await setViewport(width, height);
+      const layout = await evaluate(`(() => {
+        const menu = document.querySelector('.menu-screen');
+        const play = menu.querySelector('.main-actions .primary');
+        const clipped = [...menu.querySelectorAll('button')].filter((button) => {
+          const box = button.getBoundingClientRect();
+          return box.top < 0 || box.left < 0 || box.right > innerWidth || box.bottom > innerHeight;
+        }).map((button) => button.textContent.trim());
+        return { scale: play.getBoundingClientRect().height / play.offsetHeight, scrollX: menu.scrollWidth - menu.clientWidth,
+          scrollY: menu.scrollHeight - menu.clientHeight, clipped };
+      })()`);
+      assert(Math.abs(layout.scale - 1.5) < .02 && layout.scrollX <= 1 && layout.scrollY <= 1 && layout.clipped.length === 0,
+        `150% menu does not fit in ${language} at ${width}x${height}: ${JSON.stringify(layout)}`);
+    }
+  }
+  await evaluate("document.querySelector('.main-actions .primary').click()");
   await waitFor("document.querySelector('.game-screen canvas.game-canvas')");
   assert(await evaluate('window.__yandexSmoke.starts') >= 1, 'GameplayAPI.start was not called on level start');
 
@@ -272,7 +294,7 @@ try {
   assert(await evaluate('history.length') === historyLength, 'Internal navigation polluted browser history');
 
   assert(runtimeErrors.length === 0, `Browser runtime errors: ${runtimeErrors.join(' | ')}`);
-  console.log(`Browser smoke: PASS (${viewports.length} viewports, context menu, lifecycle, rotation, history)`);
+  console.log(`Browser smoke: PASS (RU/EN menu zoom, ${viewports.length} gameplay viewports, context menu, lifecycle, rotation, history)`);
 } finally {
   socket?.close();
   chrome.kill();

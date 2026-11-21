@@ -12,6 +12,8 @@ let paused = false;
 let unlocked = false;
 
 const ambientUrl = `${(import.meta as ViteMeta).env?.BASE_URL ?? './'}audio/moonlit-isles.wav`;
+// The WAV has 20 ms of repeated audio at each edge for decoder resampling.
+const ambientLoopPadding = .02;
 
 const ensureContext = (): AudioContext | null => {
   if (context) return context;
@@ -85,13 +87,15 @@ const syncMusic = (): void => {
   const audio = context;
   const gain = ambientGain;
   if (!audio || !gain) return;
-  gain.gain.setTargetAtTime(musicEnabled && unlocked && !paused ? 0.24 : 0, audio.currentTime, 0.025);
+  gain.gain.setTargetAtTime(musicEnabled && unlocked && !paused ? 0.12 : 0, audio.currentTime, 0.025);
   if (!ambientBuffer || ambientSource) return;
   ambientSource = audio.createBufferSource();
   ambientSource.buffer = ambientBuffer;
   ambientSource.loop = true;
+  ambientSource.loopStart = ambientLoopPadding;
+  ambientSource.loopEnd = ambientBuffer.duration - ambientLoopPadding;
   ambientSource.connect(gain);
-  ambientSource.start();
+  ambientSource.start(0, ambientLoopPadding);
 };
 
 export const unlockAudio = (): void => {

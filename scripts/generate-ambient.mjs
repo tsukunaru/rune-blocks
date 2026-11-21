@@ -6,6 +6,9 @@ const sampleRate = 22_050;
 const duration = 32;
 const frames = sampleRate * duration;
 const channels = 2;
+const bytesPerFrame = channels * 2;
+const crossfadeFrames = sampleRate * 2;
+const paddingFrames = sampleRate / 50; // Keep in sync with ambientLoopPadding in src/audio.ts.
 const output = resolve(dirname(fileURLToPath(import.meta.url)), '../public/audio/moonlit-isles.wav');
 const chords = [
   [110, 164.81, 220, 246.94],
@@ -50,18 +53,29 @@ const sample = (time, side, wind) => {
         + Math.sin(Math.PI * 2 * frequency * .5 * age) * .16) * envelope * .055 * stereo;
     }
   }
-  const edge = Math.min(1, time / .18, (duration - time) / .18);
-  return Math.max(-1, Math.min(1, value * Math.max(0, edge)));
+  return Math.max(-1, Math.min(1, value));
 };
 
-const pcm = Buffer.alloc(frames * channels * 2);
+const pcm = Buffer.alloc((frames + 2 * paddingFrames) * bytesPerFrame);
 let filteredNoise = 0;
-for (let frame = 0; frame < frames; frame += 1) {
+for (let frame = 0; frame < frames + crossfadeFrames; frame += 1) {
   const time = frame / sampleRate;
   filteredNoise += (random() - filteredNoise) * .018;
-  pcm.writeInt16LE(Math.round(sample(time, -1, filteredNoise) * 32_767), frame * 4);
-  pcm.writeInt16LE(Math.round(sample(time, 1, filteredNoise) * 32_767), frame * 4 + 2);
+  // Continue the waveform past 32 s, then blend it into the original opening.
+  const tailWeight = frame < frames ? 1 : (1 + Math.cos(Math.PI * (frame - frames) / crossfadeFrames)) / 2;
+  for (let channel = 0; channel < channels; channel += 1) {
+    const offset = (paddingFrames + frame % frames) * bytesPerFrame + channel * 2;
+    const original = pcm.readInt16LE(offset);
+    const next = sample(time, channel === 0 ? -1 : 1, filteredNoise) * 32_767;
+    pcm.writeInt16LE(Math.round(next * tailWeight + original * (1 - tailWeight)), offset);
+  }
 }
+
+// Copy the adjoining audio outside each loop point so decoding can interpolate across it.
+const loopStart = paddingFrames * bytesPerFrame;
+const loopEnd = loopStart + frames * bytesPerFrame;
+pcm.copy(pcm, 0, loopEnd - loopStart, loopEnd);
+pcm.copy(pcm, loopEnd, loopStart, 2 * loopStart);
 
 const wave = Buffer.alloc(44 + pcm.length);
 wave.write('RIFF', 0);
@@ -71,8 +85,8 @@ wave.writeUInt32LE(16, 16);
 wave.writeUInt16LE(1, 20);
 wave.writeUInt16LE(channels, 22);
 wave.writeUInt32LE(sampleRate, 24);
-wave.writeUInt32LE(sampleRate * channels * 2, 28);
-wave.writeUInt16LE(channels * 2, 32);
+wave.writeUInt32LE(sampleRate * bytesPerFrame, 28);
+wave.writeUInt16LE(bytesPerFrame, 32);
 wave.writeUInt16LE(16, 34);
 wave.write('data', 36);
 wave.writeUInt32LE(pcm.length, 40);
